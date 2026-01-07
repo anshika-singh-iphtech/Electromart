@@ -12,7 +12,13 @@ import ProductDetailsScreen from "./src/screens/ProductDetailsScreen";
 import BottomTabNavigator from "./src/navigation/BottomTabNavigator";
 
 import { store } from "./src/redux/store";
-import { navigationRef } from "./src/navigation/navigationRef"; // ✅ ADD THIS
+import { navigationRef } from "./src/navigation/navigationRef";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure({
+  webClientId: '120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com',
+  offlineAccess: true, // if you want a refresh token
+});
 
 const Stack = createNativeStackNavigator();
 
@@ -48,18 +54,33 @@ const App = () => {
   return (
     <Provider store={store}>
       <NavigationContainer ref={navigationRef}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}
-              initialRouteName={isLoggedIn ? "MainTabs" : "Home"}>
-          {/* Splash / Home */}
+        <Stack.Navigator
+          initialRouteName={isLoggedIn ? "MainTabs" : "Home"}
+          screenOptions={{
+            headerShown: false,
+            gestureEnabled: true,
+          }}
+        >
+          {/* Auth / Home */}
           <Stack.Screen name="Home" component={HomeScreen} />
-
-          {/* Auth */}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
 
-          {/* App */}
-          <Stack.Screen name="MainTabs" component={BottomTabNavigator} />
-          <Stack.Screen name="ProductDetails" component={ProductDetailsScreen} />
+          {/* Main App with Bottom Tabs */}
+          <Stack.Screen
+            name="MainTabs"
+            component={BottomTabNavigator}
+            options={{
+              animation: "slide_from_left", // <-- Adds left-to-right slide
+            }}
+          />
+
+          {/* Product Details */}
+          <Stack.Screen
+            name="ProductDetails"
+            component={ProductDetailsScreen}
+            options={{ animation: "slide_from_right" }} // also animates when opening product details
+          />
         </Stack.Navigator>
 
         <Toast />

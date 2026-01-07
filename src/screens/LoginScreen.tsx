@@ -15,6 +15,15 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import auth from '@react-native-firebase/auth';
+
+// Configure Google Sign-In
+GoogleSignin.configure({
+  webClientId: '120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com',
+  offlineAccess: true, // if you want a refresh token
+});
+
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
 
@@ -68,6 +77,23 @@ const LoginScreen = () => {
         console.log(err);
         setFormError("Something went wrong. Please try again.");
       }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      // Get the users ID token
+      const { idToken } = await GoogleSignin.signIn();
+
+      // Create a Google credential with the token
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+
+      // Sign-in the user with the credential
+      await auth().signInWithCredential(googleCredential);
+
+      console.log('User signed in successfully');
+    } catch (error) {
+      console.error('Google login error:', error);
+    }
   };
 
   return (
@@ -169,10 +195,12 @@ const LoginScreen = () => {
             {/* Social */}
             <View style={styles.socialRow}>
               <View style={styles.socialBtn}>
-                <Image
-                  source={require("../assets/images/googleIcon.png")}
+                <Pressable onPress={handleGoogleLogin}>
+                  <Image
+                    source={require("../assets/images/googleIcon.png")}
                     style={styles.iconSize}
-                />
+                  />
+                </Pressable>
               </View>
               <View style={styles.socialBtn}>
                <Image

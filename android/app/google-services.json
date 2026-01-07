@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "120295335178",
+    "project_id": "electromart-2c88d",
+    "storage_bucket": "electromart-2c88d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:120295335178:android:7396409edff97ddcbbc6f3",
+        "android_client_info": {
+          "package_name": "com.shoppingcart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAC3FtYzogU6KM6aW8xvXsp7_gCQrumy9w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
