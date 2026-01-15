@@ -14,15 +14,9 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 
-// Configure Google Sign-In
-GoogleSignin.configure({
-  webClientId: '120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com',
-  offlineAccess: true, // if you want a refresh token
-});
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -33,9 +27,18 @@ const LoginScreen = () => {
 
   const [emailError, setEmailError] = useState("");
   const [formError, setFormError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  GoogleSignin.configure({
+    webClientId: "661344018876-khq8mk62mskhl92lrqlok0nfr8a55o2d.apps.googleusercontent.com",
+    scopes: ['email', 'profile', 'openid'],
+     // "661344018876-khq8mk62mskhl92lrqlok0nfr8a55o2d.apps.googleusercontent.com",
+  });
 
   const validateEmail = (value: string) =>
-    /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/.test(value);
+    /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/.test(
+      value
+    );
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -43,58 +46,71 @@ const LoginScreen = () => {
       return;
     }
 
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/;
+    const emailRegex =
+      /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/;
     if (!emailRegex.test(email)) {
       setEmailError("Enter a valid email address");
       return;
     }
 
     try {
-        // Get all users from AsyncStorage
-        const usersJSON = await AsyncStorage.getItem("@users");
-        const users = usersJSON ? JSON.parse(usersJSON) : [];
+      const usersJSON = await AsyncStorage.getItem("@users");
+      const users = usersJSON ? JSON.parse(usersJSON) : [];
 
-        if (users.length === 0) {
-          setFormError("User not registered");
-          return;
-        }
-
-        // Find user matching email and password
-        const user = users.find(
-          (u: any) => u.email === email && u.password === password);
-
-        if (!user) {
-          setFormError("Invalid email or password");
-          return;
-        }
-
-        // Successful login
-        await AsyncStorage.setItem("@is_logged_in", "true");
-
-        // Navigate to ProductsScreen
-        navigation.replace("MainTabs");
-      } catch (err) {
-        console.log(err);
-        setFormError("Something went wrong. Please try again.");
+      if (users.length === 0) {
+        setFormError("User not registered");
+        return;
       }
-  };
 
-  const handleGoogleLogin = async () => {
-    try {
-      // Get the users ID token
-      const { idToken } = await GoogleSignin.signIn();
+      const user = users.find(
+        (u: any) => u.email === email && u.password === password
+      );
 
-      // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      if (!user) {
+        setFormError("Invalid email or password");
+        return;
+      }
 
-      // Sign-in the user with the credential
-      await auth().signInWithCredential(googleCredential);
+      // ✅ Store login flag
+      await AsyncStorage.setItem("@is_logged_in", "true");
 
-      console.log('User signed in successfully');
-    } catch (error) {
-      console.error('Google login error:', error);
+      // ✅ Store actual logged-in user object
+      await AsyncStorage.setItem("@logged_in_user", JSON.stringify(user));
+
+      navigation.replace("MainTabs");
+    } catch (err) {
+      console.log(err);
+      setFormError("Something went wrong. Please try again.");
     }
   };
+
+  // ✅ FIXED GOOGLE SIGN-IN FUNCTION  
+  const handleGoogleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+  
+      const signInResult = await GoogleSignin.signIn();
+  
+      const idToken = signInResult.data?.idToken;
+      if (!idToken) throw new Error("No ID token returned");
+  
+      // Create Firebase credential
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+  
+      // Sign into Firebase
+      const user = await auth().signInWithCredential(googleCredential);
+  
+      navigation.replace("MainTabs");
+  
+      return user;
+    } catch (error: any)  {
+        console.log(error);
+      
+    }
+  };
+  
 
   return (
     <KeyboardAvoidingView
@@ -113,10 +129,7 @@ const LoginScreen = () => {
 
           {/* Card */}
           <View style={styles.formCard}>
-            {/* Form Error (top of card) */}
-            {formError ? (
-              <Text style={styles.formError}>{formError}</Text>
-            ) : null}
+            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
             {/* Email */}
             <View style={styles.inputWrapper}>
@@ -195,24 +208,32 @@ const LoginScreen = () => {
             {/* Social */}
             <View style={styles.socialRow}>
               <View style={styles.socialBtn}>
-                <Pressable onPress={handleGoogleLogin}>
+                <Pressable
+                  onPress={() =>
+                    handleGoogleLogin()
+                      .then((res) => console.log(res))
+                      .catch((error) => console.log(error))
+                  }
+                >
                   <Image
                     source={require("../assets/images/googleIcon.png")}
                     style={styles.iconSize}
                   />
                 </Pressable>
               </View>
+
               <View style={styles.socialBtn}>
-               <Image
-                 source={require("../assets/images/facebookIcon.png")}
-                   style={styles.iconSize}
-               />
+                <Image
+                  source={require("../assets/images/facebookIcon.png")}
+                  style={styles.iconSize}
+                />
               </View>
+
               <View style={styles.socialBtn}>
-               <Image
-                 source={require("../assets/images/appleIcon.png")}
-                   style={styles.iconSize}
-               />
+                <Image
+                  source={require("../assets/images/appleIcon.png")}
+                  style={styles.iconSize}
+                />
               </View>
             </View>
           </View>
@@ -232,6 +253,8 @@ const LoginScreen = () => {
     </KeyboardAvoidingView>
   );
 };
+
+
 
 export default LoginScreen;
 

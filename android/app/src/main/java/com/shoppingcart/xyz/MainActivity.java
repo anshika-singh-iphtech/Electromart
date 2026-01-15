@@ -1,4 +1,4 @@
-package com.shoppingcart;
+package com.shoppingcart.xyz;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo} from "react";
 import { View, Text, FlatList, Pressable, TextInput, Image, Dimensions,
-  StyleSheet, Modal, Alert } from "react-native";
+  StyleSheet, Modal, Alert, ScrollView } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -14,6 +14,7 @@ import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import RangeSlider from "rn-range-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { resetToLogin } from "../navigation/navigationRef";
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const { width } = Dimensions.get("window");
 const numColumns = 2;
@@ -39,6 +40,21 @@ const ProductsScreen = () => {
 
    // Profile State Variables
    const [profileVisible, setProfileVisible] = useState(false);
+   const [user, setUser] = useState(null);
+
+   const [editProfileVisible, setEditProfileVisible] = useState(false);
+
+   // Editable fields
+   const [editName, setEditName] = useState("");
+   const [editEmail, setEditEmail] = useState("");
+   const [editPhone, setEditPhone] = useState("");
+   const [editAddress, setEditAddress] = useState("");
+   const [editGender, setEditGender] = useState("Male");
+
+   //const defaultPic =
+     //  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+   const defaultProfilePic = Image.resolveAssetSource
+   ( require("../assets/images/appleIcon.png") ).uri;
 
   const cardWidth = (width - cardMargin * (numColumns + 2)) / numColumns;
 
@@ -104,6 +120,30 @@ const applyFilters = () => {
     });
   };
 
+  const handleChangeProfilePic = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.7,
+      });
+
+      if (result.didCancel) return;
+      if (!result.assets || !result.assets[0]) return;
+
+      const newUri = result.assets[0].uri;
+
+      // Update local state
+      const updatedUser = { ...user, profilePic: newUri };
+      setUser(updatedUser);
+
+      // Save updated user in AsyncStorage
+      await AsyncStorage.setItem('@logged_in_user', JSON.stringify(updatedUser));
+
+    } catch (error) {
+      console.log("Error picking image:", error);
+    }
+  };
+
   const renderItem = ({ item }: any) => (
     <ProductCard
       item={item}
@@ -121,9 +161,20 @@ const applyFilters = () => {
 
   const handleLogout = async () => {
     try {
+      // 1️⃣ Clear AsyncStorage login flags
       await AsyncStorage.removeItem("@is_logged_in");
+      await AsyncStorage.removeItem("@logged_in_user");
+      //await GoogleSignin.revokeAccess();
+      //await auth().signOut();
+      //console.log("Sign out success");
+
+      // 4️⃣ Update local UI state
       setProfileVisible(false);
+
+      // 5️⃣ Navigate back to Login screen
       navigation.replace("Login");
+
+      console.log("User logged out successfully");
     } catch (error) {
       console.log("Logout error:", error);
     }
@@ -135,6 +186,14 @@ const applyFilters = () => {
       setRating((prev) => prev);  // This triggers a re-render without changing the value
     }
   }, [isFilterVisible]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const json = await AsyncStorage.getItem("@logged_in_user");
+      if (json) setUser(JSON.parse(json));
+    };
+    fetchUser();
+  }, []);
 
 const ProfileItem = ({ icon, label, danger, onPress }) => (
   <Pressable
@@ -180,6 +239,22 @@ const filteredProducts = useMemo(() => {
    });
  }, [searchQuery, minPrice, maxPrice, minRating, filterByPrice, filterByRating]);
 
+ const handleUpdateProfile = async () => {
+   const updatedUser = {
+     ...user,
+     name: editName,
+     email: editEmail,
+     phone: editPhone,
+     address: editAddress,
+     gender: editGender,
+   };
+
+   setUser(updatedUser);
+   await AsyncStorage.setItem("@logged_in_user", JSON.stringify(updatedUser));
+
+   setEditProfileVisible(false);
+ };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -210,16 +285,19 @@ const filteredProducts = useMemo(() => {
           </Pressable>
 
           <Pressable onPress={() => setProfileVisible(true)}>
-            <Image
-              source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
-              style={styles.profileImage}
-            />
-          </Pressable>
 
+            <Image source={{ uri: user?.profilePic || defaultProfilePic }}
+            style={styles.profileImage} />
+
+          </Pressable>
         </View>
       </View>
 
-      {/* Search + Filter */}
+      {/* Search + Filter
+      <Image
+        source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
+        style={styles.profileImage}
+      />*/}
       <View style={styles.searchFilterContainer}>
         <View style={styles.searchContainer}>
           <MaterialCommunityIcons
@@ -406,17 +484,32 @@ const filteredProducts = useMemo(() => {
                <View style={styles.profileSidebar}>
                  {/* Profile section */}
                  <View style={styles.profileHeader}>
+
                    <Image
-                     source={{ uri: "https://randomuser.me/api/portraits/women/44.jpg" }}
+                     source={{ uri: user?.profilePic ?? defaultProfilePic }}
                      style={styles.profileAvatar}
                    />
-                   <Text style={styles.profileName}>Anshika Singh</Text>
+
+                   <Text style={styles.profileName}>{user?.name ?? user?.email}</Text>
 
                    <View style={styles.profileActions}>
-                     <Pressable style={styles.profileActionBtn}>
+                     <Pressable style={styles.profileActionBtn} onPress={handleChangeProfilePic}>
                        <Text style={styles.profileActionText}>Change Pic</Text>
                      </Pressable>
-                     <Pressable style={styles.profileActionBtnOutline}>
+                     <Pressable
+                       style={styles.profileActionBtnOutline}
+                       onPress={() => {
+                         setEditName(user?.name || "");
+                         setEditEmail(user?.email || "");
+                         setEditPhone(user?.phone || "");
+                         setEditAddress(user?.address || "");
+                         setEditGender(user?.gender || "Male");
+                         setProfileVisible(false);   // 👈 CLOSE SIDEBAR MODAL
+                           setTimeout(() => {
+                             setEditProfileVisible(true); // 👈 OPEN EDIT MODAL
+                           }, 200);
+                       }}
+                     >
                        <Text style={styles.profileActionTextOutline}>Update</Text>
                      </Pressable>
                    </View>
@@ -479,6 +572,128 @@ const filteredProducts = useMemo(() => {
                </View>
              </View>
            </Modal>
+          <Modal
+            visible={editProfileVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setEditProfileVisible(false)}
+          >
+            <View style={styles.editOverlay}>
+              <View style={styles.editContainer}>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                  keyboardShouldPersistTaps="handled"
+                >
+
+                  <Text style={styles.editTitle}>Edit Profile</Text>
+
+                  {/* Name */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Full Name</Text>
+                    <View style={styles.inputRow}>
+                      <MaterialCommunityIcons name="account" size={22} color="#6C4E39" />
+                      <TextInput
+                        value={editName}
+                        onChangeText={setEditName}
+                        style={styles.input}
+                        placeholder="Enter your name"
+                        placeholderTextColor="#999"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Email */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email</Text>
+                    <View style={styles.inputRow}>
+                      <MaterialCommunityIcons name="email-outline" size={22} color="#6C4E39" />
+                      <TextInput
+                        value={editEmail}
+                        onChangeText={setEditEmail}
+                        style={styles.input}
+                        placeholder="Enter your email"
+                        placeholderTextColor="#999"
+                        keyboardType="email-address"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Phone */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Phone Number</Text>
+                    <View style={styles.inputRow}>
+                      <MaterialCommunityIcons name="phone" size={22} color="#6C4E39" />
+                      <TextInput
+                        value={editPhone}
+                        onChangeText={setEditPhone}
+                        style={styles.input}
+                        placeholder="Enter phone number"
+                        placeholderTextColor="#999"
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Address */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Address</Text>
+                    <View style={styles.inputRow}>
+                      <MaterialCommunityIcons name="map-marker-outline" size={22} color="#6C4E39" />
+                      <TextInput
+                        value={editAddress}
+                        onChangeText={setEditAddress}
+                        style={styles.input}
+                        placeholder="Enter address"
+                        placeholderTextColor="#999"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Gender */}
+                  <Text style={styles.label}>Gender</Text>
+                  <View style={styles.genderRow}>
+                    {["Male", "Female", "Other"].map((g) => (
+                      <Pressable
+                        key={g}
+                        style={[
+                          styles.genderBtn,
+                          editGender === g && styles.genderBtnActive,
+                        ]}
+                        onPress={() => setEditGender(g)}
+                      >
+                        <Text
+                          style={[
+                            styles.genderText,
+                            editGender === g && styles.genderTextActive,
+                          ]}
+                        >
+                          {g}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {/* Actions */}
+                  <View style={styles.actionRow}>
+                    <Pressable style={styles.saveBtn} onPress={handleUpdateProfile}>
+                      <Text style={styles.saveBtnText}>Save</Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={styles.cancelBtn}
+                      onPress={() => setEditProfileVisible(false)}
+                    >
+                      <Text style={styles.cancelBtnText}>Cancel</Text>
+                    </Pressable>
+                  </View>
+
+                </ScrollView>
+
+              </View>
+            </View>
+          </Modal>
 
     </View>
   );
@@ -845,7 +1060,129 @@ modalOverlay: {
        color: "#fff",
        fontWeight: "bold",
      },
-});
+   /* --------------  Edit Profile -------------------*/
+     editOverlay: {
+       flex: 1,
+       backgroundColor: "rgba(0,0,0,0.6)",
+       justifyContent: "center",
+       alignItems: "center",
+     },
+
+     editContainer: {
+       width: "88%",
+       backgroundColor: "#fff",
+       padding: 22,
+       borderRadius: 18,
+       elevation: 12,
+       shadowColor: "#000",
+       shadowOpacity: 0.25,
+       shadowRadius: 8,
+       marginVertical: 20,
+       shadowOffset: { width: 0, height: 2 },
+     },
+
+     editTitle: {
+       fontSize: 20,
+       fontWeight: "700",
+       marginBottom: 18,
+       textAlign: "center",
+       color: "#6C4E39",
+     },
+
+     inputGroup: {
+       marginBottom: 14,
+     },
+
+     label: {
+       fontSize: 14,
+       color: "#444",
+       marginBottom: 6,
+       fontWeight: "600",
+     },
+
+     inputRow: {
+       flexDirection: "row",
+       alignItems: "center",
+       backgroundColor: "#F4EFEA",
+       paddingHorizontal: 12,
+       paddingVertical: 5,
+       borderRadius: 10,
+     },
+
+     input: {
+       marginLeft: 8,
+       flex: 1,
+       fontSize: 15,
+       color: "#333",
+     },
+
+     genderRow: {
+       flexDirection: "row",
+       justifyContent: "space-between",
+       marginVertical: 12,
+     },
+
+     genderBtn: {
+       flex: 1,
+       paddingVertical: 10,
+       marginHorizontal: 4,
+       borderRadius: 10,
+       borderWidth: 1,
+       borderColor: "#bbb",
+       alignItems: "center",
+     },
+
+     genderBtnActive: {
+       backgroundColor: "#6C4E39",
+       borderColor: "#6C4E39",
+     },
+
+     genderText: {
+       color: "#444",
+       fontWeight: "600",
+     },
+
+     genderTextActive: {
+       color: "#fff",
+     },
+
+     actionRow: {
+       flexDirection: "row",
+       marginTop: 20,
+       justifyContent: "space-between",
+     },
+
+     saveBtn: {
+       flex: 1,
+       backgroundColor: "#6C4E39",
+       paddingVertical: 12,
+       borderRadius: 10,
+       alignItems: "center",
+       marginRight: 6,
+     },
+
+     saveBtnText: {
+       color: "#fff",
+       fontSize: 16,
+       fontWeight: "600",
+     },
+
+     cancelBtn: {
+       flex: 1,
+       backgroundColor: "#ddd",
+       paddingVertical: 12,
+       borderRadius: 10,
+       alignItems: "center",
+       marginLeft: 6,
+     },
+
+     cancelBtnText: {
+       color: "#555",
+       fontSize: 16,
+       fontWeight: "600",
+     },
+   });
+
 
 
 

@@ -13,18 +13,17 @@ import BottomTabNavigator from "./src/navigation/BottomTabNavigator";
 
 import { store } from "./src/redux/store";
 import { navigationRef } from "./src/navigation/navigationRef";
+import firebase from '@react-native-firebase/app';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-
-GoogleSignin.configure({
-  webClientId: '120295335178-befbstfhctdblgikkh555fkjfoo2d3s3.apps.googleusercontent.com',
-  offlineAccess: true, // if you want a refresh token
-});
-
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+    /*useEffect(()=>{
+        GoogleSignin.configure({
+          webClientId: '661344018876-khq8mk62mskhl92lrqlok0nfr8a55o2d.apps.googleusercontent.com',
+        });
+    },[])*/
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-
   const checkLoginStatus = async () => {
     const value = await AsyncStorage.getItem("@is_logged_in");
     setIsLoggedIn(value === "true");
@@ -33,8 +32,6 @@ const App = () => {
   useEffect(() => {
     checkLoginStatus();
   }, []);
-
-
 
   // ⏳ Splash while checking auth
   if (isLoggedIn === null) {

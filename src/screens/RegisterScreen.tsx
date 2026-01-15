@@ -13,6 +13,7 @@ import {
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { launchImageLibrary } from "react-native-image-picker";
 
 const RegisterScreen = () => {
   const navigation = useNavigation<any>();
@@ -24,6 +25,15 @@ const RegisterScreen = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [gender, setGender] = useState("Female");
+  const [profilePic, setProfilePic] = useState(null);
+
+  const defaultProfilePic = Image.resolveAssetSource(
+    require("../assets/images/appleIcon.png")
+  ).uri;
 
   const validate = () => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/;
@@ -64,7 +74,16 @@ const RegisterScreen = () => {
       }
 
       // Add new user to array
-      const newUser = { email, password };
+      const newUser = {
+        profilePic: profilePic ? profilePic : defaultProfilePic,
+        name,
+        email,
+        password,
+        phone,
+        address,
+        gender,
+      };
+
       users.push(newUser);
 
       // Save updated array
@@ -83,6 +102,19 @@ const RegisterScreen = () => {
     }
   };
 
+  const selectProfileImage = () => {
+    launchImageLibrary({ mediaType: "photo", quality: 0.7 }, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        console.log("Image Error:", response.errorMessage);
+        return;
+      }
+
+      if (response.assets?.length > 0) {
+        setProfilePic(response.assets[0].uri);
+      }
+    });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -95,7 +127,7 @@ const RegisterScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.container}>
-          <Text style={styles.title}>Welcome!</Text>
+          <Text style={styles.title}>Register !!!</Text>
           <Text style={styles.subtitle}>Start your journey today.</Text>
 
           {/* Card */}
@@ -103,6 +135,87 @@ const RegisterScreen = () => {
             {/* Error */}
             {error ? <Text style={styles.error}>{error}</Text> : null}
             {success ? <Text style={styles.success}>{success}</Text> : null}
+
+            {/* Profile Picture */}
+            <View style={{ alignItems: "center", marginBottom: 20 }}>
+              <Image
+                source={
+                  profilePic
+                    ? { uri: profilePic }
+                    : require("../assets/images/appleIcon.png") // default image
+                }
+                style={{
+                  height: 90,
+                  width: 90,
+                  borderRadius: 45,
+                  marginBottom: 10,
+                }}
+              />
+
+              <Pressable
+                onPress={selectProfileImage}
+                style={{
+                  backgroundColor: "#6C4E39",
+                  paddingVertical: 6,
+                  paddingHorizontal: 15,
+                  borderRadius: 8,
+                }}
+              >
+                <Text style={{ color: "white", fontSize: 13 }}>Choose Image</Text>
+              </Pressable>
+            </View>
+
+            {/* Name */}
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="account-outline" size={20} color="#6C4E39" />
+              <TextInput
+                placeholder="Enter your name"
+                placeholderTextColor="#8D8271"
+                style={styles.input}
+                value={name}
+                onChangeText={(text) => {
+                  setName(text);
+                  setError("");
+                  setSuccess("");
+                }}
+                cursorColor="#6C4E39"
+              />
+            </View>
+
+            {/* Phone */}
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="phone-outline" size={20} color="#6C4E39" />
+              <TextInput
+                placeholder="Enter your phone number"
+                placeholderTextColor="#8D8271"
+                style={styles.input}
+                keyboardType="numeric"
+                value={phone}
+                onChangeText={(text) => {
+                  setPhone(text);
+                  setError("");
+                  setSuccess("");
+                }}
+                cursorColor="#6C4E39"
+              />
+            </View>
+
+            {/* Address */}
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="map-marker-outline" size={20} color="#6C4E39" />
+              <TextInput
+                placeholder="Enter your address"
+                placeholderTextColor="#8D8271"
+                style={styles.input}
+                value={address}
+                onChangeText={(text) => {
+                  setAddress(text);
+                  setError("");
+                  setSuccess("");
+                }}
+                cursorColor="#6C4E39"
+              />
+            </View>
 
             {/* Email */}
             <View style={styles.inputWrapper}>
@@ -128,7 +241,7 @@ const RegisterScreen = () => {
                 autoCorrect={false}
                 autoComplete="off"
                 importantForAutofill="no"
-                autoComplete="off"
+                
                 caretHidden={false}
               />
             </View>
@@ -191,6 +304,110 @@ const RegisterScreen = () => {
               </Pressable>
             </View>
 
+            {/* Gender */}
+            <View style={{ marginVertical: 12, marginHorizontal: 6}}>
+              <Text style={{ color: "#6C4E39", marginBottom: 10, fontSize: 14 }}>
+                Select Gender
+              </Text>
+
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
+
+                {/* Male */}
+                <Pressable
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                  onPress={() => setGender("Male")}
+                >
+                  <View
+                    style={{
+                      height: 18,
+                      width: 18,
+                      borderRadius: 9,
+                      borderWidth: 2,
+                      borderColor: "#6C4E39",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 6,
+                    }}
+                  >
+                    {gender === "Male" && (
+                      <View
+                        style={{
+                          height: 10,
+                          width: 10,
+                          borderRadius: 5,
+                          backgroundColor: "#6C4E39",
+                        }}
+                      />
+                    )}
+                  </View>
+                  <Text style={{ color: "#6C4E39" }}>Male</Text>
+                </Pressable>
+
+                {/* Female */}
+                <Pressable
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                  onPress={() => setGender("Female")}
+                >
+                  <View
+                    style={{
+                      height: 18,
+                      width: 18,
+                      borderRadius: 9,
+                      borderWidth: 2,
+                      borderColor: "#6C4E39",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 6,
+                    }}
+                  >
+                    {gender === "Female" && (
+                      <View
+                        style={{
+                          height: 10,
+                          width: 10,
+                          borderRadius: 5,
+                          backgroundColor: "#6C4E39",
+                        }}
+                      />
+                    )}
+                  </View>
+                  <Text style={{ color: "#6C4E39" }}>Female</Text>
+                </Pressable>
+
+                {/* Other */}
+                <Pressable
+                  style={{ flexDirection: "row", alignItems: "center" }}
+                  onPress={() => setGender("Other")}
+                >
+                  <View
+                    style={{
+                      height: 18,
+                      width: 18,
+                      borderRadius: 9,
+                      borderWidth: 2,
+                      borderColor: "#6C4E39",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginRight: 6,
+                    }}
+                  >
+                    {gender === "Other" && (
+                      <View
+                        style={{
+                          height: 10,
+                          width: 10,
+                          borderRadius: 5,
+                          backgroundColor: "#6C4E39",
+                        }}
+                      />
+                    )}
+                  </View>
+                  <Text style={{ color: "#6C4E39" }}>Other</Text>
+                </Pressable>
+
+              </View>
+            </View>
+
             <Pressable style={({ pressed }) => [
                            styles.primaryBtn,
                            pressed && styles.primaryBtnPressed,
@@ -209,11 +426,14 @@ const RegisterScreen = () => {
             {/* Social */}
             <View style={styles.socialRow}>
               <View style={styles.socialBtn}>
-                <Image
-                  source={require("../assets/images/googleIcon.png")}
+                <Pressable>
+                  <Image
+                    source={require("../assets/images/googleIcon.png")}
                     style={styles.iconSize}
-                />
+                  />
+                </Pressable>
               </View>
+
               <View style={styles.socialBtn}>
                <Image
                  source={require("../assets/images/facebookIcon.png")}
@@ -251,7 +471,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#EFE5D1",
     paddingHorizontal: 24,
-    paddingTop: 70,
+    paddingVertical: 30,
   },
 
   title: {
@@ -264,7 +484,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 15,
     color: "#6C6C74",
-    marginBottom: 26,
+    marginBottom: 6,
   },
 
   card: {
@@ -345,7 +565,7 @@ const styles = StyleSheet.create({
     dividerRow: {
       flexDirection: "row",
       alignItems: "center",
-      marginVertical: 45,
+      marginVertical: 25,
     },
 
     line: {
