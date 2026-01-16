@@ -177,8 +177,6 @@ const CartScreen = () => {
           </View>
         </View>
       </Modal>
-
-
     </View>
   );
 };
@@ -399,7 +397,4 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-
-
-
 });

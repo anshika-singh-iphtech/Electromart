@@ -112,7 +112,10 @@ const ProductCard: React.FC<Props> = ({
       </View>
       {/* Add to Cart Button */}
           <Pressable
-            style={styles.addToCartBtn}
+            style={({ pressed }) => [
+              styles.addToCartBtn,
+              pressed && { opacity: 0.6, transform: [{ scale: 0.97 }] }
+            ]}
             onPress={() => {
               if (isInCart) {
                 Toast.show({

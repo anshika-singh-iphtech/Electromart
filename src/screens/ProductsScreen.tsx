@@ -15,6 +15,8 @@ import RangeSlider from "rn-range-slider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { resetToLogin } from "../navigation/navigationRef";
 import { launchImageLibrary } from 'react-native-image-picker';
+import { setCartUser, setCartItems } from "../redux/slices/cartSlice";
+import { setWishlistUser, setWishlistItems } from "../redux/slices/wishlistSlice";
 
 const { width } = Dimensions.get("window");
 const numColumns = 2;
@@ -50,6 +52,8 @@ const ProductsScreen = () => {
    const [editPhone, setEditPhone] = useState("");
    const [editAddress, setEditAddress] = useState("");
    const [editGender, setEditGender] = useState("Male");
+
+   const [activeProfileTab, setActiveProfileTab] = useState("changePic");
 
    //const defaultPic =
      //  "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -168,6 +172,10 @@ const applyFilters = () => {
       //await auth().signOut();
       //console.log("Sign out success");
 
+      dispatch(setCartUser(null));
+      dispatch(setCartItems([]));
+      dispatch(setWishlistUser(null));
+      dispatch(setWishlistItems([]));
       // 4️⃣ Update local UI state
       setProfileVisible(false);
 
@@ -317,7 +325,10 @@ const filteredProducts = useMemo(() => {
 
         {/* Filter Icon */}
         <Pressable
-          style={styles.filterIconContainer}
+          style={({ pressed }) => [
+            styles.filterIconContainer,
+            pressed && { opacity: 0.6, transform: [{ scale: 0.97 }] }
+          ]}
           onPress={() => setIsFilterVisible(true)}
         >
           <MaterialCommunityIcons name="filter" size={24} color="#fff" />
@@ -493,24 +504,52 @@ const filteredProducts = useMemo(() => {
                    <Text style={styles.profileName}>{user?.name ?? user?.email}</Text>
 
                    <View style={styles.profileActions}>
-                     <Pressable style={styles.profileActionBtn} onPress={handleChangeProfilePic}>
-                       <Text style={styles.profileActionText}>Change Pic</Text>
+                     <Pressable style={({ pressed }) => [
+                                  activeProfileTab === "changePic"
+                                    ? styles.profileActionBtn
+                                    : styles.profileActionBtnOutline,
+                                  pressed && { opacity: 0.6, transform: [{ scale: 0.97 }] },
+                                ]}
+                     onPress={() => {
+                       setActiveProfileTab("changePic");
+                       handleChangeProfilePic();
+                     }}>
+                       <Text style={
+                                 activeProfileTab === "changePic"
+                                   ? styles.profileActionText
+                                   : styles.profileActionTextOutline
+                               }>Change Pic</Text>
                      </Pressable>
                      <Pressable
-                       style={styles.profileActionBtnOutline}
+                       style={
+                         activeProfileTab === "update"
+                           ? styles.profileActionBtn
+                           : styles.profileActionBtnOutline
+                       }
                        onPress={() => {
-                         setEditName(user?.name || "");
-                         setEditEmail(user?.email || "");
-                         setEditPhone(user?.phone || "");
-                         setEditAddress(user?.address || "");
-                         setEditGender(user?.gender || "Male");
-                         setProfileVisible(false);   // 👈 CLOSE SIDEBAR MODAL
+                         setActiveProfileTab("update");
+
+                         // ⏳ WAIT for styles to visually update
+                         setTimeout(() => {
+                           setEditName(user?.name || "");
+                           setEditEmail(user?.email || "");
+                           setEditPhone(user?.phone || "");
+                           setEditAddress(user?.address || "");
+                           setEditGender(user?.gender || "Male");
+
+                           setProfileVisible(false);
+
                            setTimeout(() => {
-                             setEditProfileVisible(true); // 👈 OPEN EDIT MODAL
+                             setEditProfileVisible(true);
                            }, 200);
+                         }, 120);  // 👈 Delay for UI updates
                        }}
                      >
-                       <Text style={styles.profileActionTextOutline}>Update</Text>
+                       <Text style={
+                                 activeProfileTab === "update"
+                                   ? styles.profileActionText
+                                   : styles.profileActionTextOutline
+                               }>Update</Text>
                      </Pressable>
                    </View>
                  </View>

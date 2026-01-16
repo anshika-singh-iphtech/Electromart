@@ -15,7 +15,9 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import auth from '@react-native-firebase/auth';
-
+import { useDispatch } from "react-redux";
+import { setCartUser, setCartItems } from "../redux/slices/cartSlice";
+import { setWishlistUser, setWishlistItems } from "../redux/slices/wishlistSlice";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 const LoginScreen = () => {
@@ -28,6 +30,7 @@ const LoginScreen = () => {
   const [emailError, setEmailError] = useState("");
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   GoogleSignin.configure({
     webClientId: "661344018876-khq8mk62mskhl92lrqlok0nfr8a55o2d.apps.googleusercontent.com",
@@ -42,12 +45,13 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setFormError("Please fill all fields");
+      Alert.alert("Error", "Please enter email and password");
       return;
     }
 
     const emailRegex =
       /^[a-zA-Z0-9._%+-]+@([A-Za-z0-9]+(-[A-Za-z0-9]+)*)(\.[A-Za-z]{2,})+$/;
+
     if (!emailRegex.test(email)) {
       setEmailError("Enter a valid email address");
       return;
@@ -76,8 +80,39 @@ const LoginScreen = () => {
 
       // ✅ Store actual logged-in user object
       await AsyncStorage.setItem("@logged_in_user", JSON.stringify(user));
+      // -------------------------------------------------------------------
+      // ⭐ ONLY REQUIRED ADDITIONS BASED ON YOUR NEW cartSlice.ts
+      // -------------------------------------------------------------------
 
-      navigation.replace("MainTabs");
+      const loggedInEmail = user.email.toLowerCase();
+
+          // =============================
+          // 🔥 3️⃣ NEW — Restore CART state
+          // =============================
+          dispatch(setCartUser(loggedInEmail));
+
+          const savedCart = await AsyncStorage.getItem(`cart_${loggedInEmail}`);
+          if (savedCart) {
+            dispatch(setCartItems(JSON.parse(savedCart)));
+          } else {
+            dispatch(setCartItems([]));
+          }
+
+          // =============================
+          // 🔥 4️⃣ NEW — Restore WISHLIST
+          // =============================
+          dispatch(setWishlistUser(loggedInEmail));
+
+          const savedWishlist = await AsyncStorage.getItem(`wishlist_${loggedInEmail}`);
+          if (savedWishlist) {
+            dispatch(setWishlistItems(JSON.parse(savedWishlist)));
+          } else {
+            dispatch(setWishlistItems([]));
+          }
+
+          // 5️⃣ Navigate
+          navigation.replace("MainTabs");
+
     } catch (err) {
       console.log(err);
       setFormError("Something went wrong. Please try again.");
@@ -253,9 +288,6 @@ const LoginScreen = () => {
     </KeyboardAvoidingView>
   );
 };
-
-
-
 export default LoginScreen;
 
 const styles = StyleSheet.create({

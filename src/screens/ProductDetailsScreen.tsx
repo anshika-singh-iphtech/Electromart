@@ -79,7 +79,10 @@ const ProductDetailsScreen = () => {
 
         {/* FIXED ADD TO CART BUTTON */}
         <Pressable
-          style={styles.cartBtn}
+          style={({ pressed }) => [
+            styles.cartBtn,
+            pressed && { opacity: 0.6, transform: [{ scale: 0.97 }] }
+          ]}
           onPress={() => {
             dispatch(addToCart({ product, quantity }));
             navigation.navigate("Cart");
